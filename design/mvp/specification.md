@@ -6,10 +6,45 @@ Here is a sample of an RSS feed from The Record by the Recorded Future team; `ht
 
 Note, in many cases a blog will clearly show their RSS (or ATOM) feed URL, but not all. Whilst not all blogs have RSS feeds, if you open up a browser, navigate to the blog, and click view page source, you can usually find the feed address under the `link rel="alternate" type="application/rss+xml"` or `application/atom+xml` HTML tag.
 
-The Recorded Future RSS feed shows all articles from the blog. The Record also allow you to subscribe to RSS feeds by category. For example, to the Cyber Crime category;
+Here's an example...
 
 ```shell
-https://therecord.media/news/cybercrime/feed/
+curl "https://krebsonsecurity.com/" > demo_1.html
+```
+
+```html
+<link rel="alternate" type="application/rss+xml" title="Krebs on Security &raquo; Feed" href="https://krebsonsecurity.com/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Krebs on Security &raquo; Comments Feed" href="https://krebsonsecurity.com/comments/feed/" />
+```
+
+Note, you might see more than one feed, above one is for posts, the other for blog comments.
+
+It's not always that simple to detect the feed URL...
+
+The Recorded Future Record RSS feed;
+
+```shell
+curl "https://therecord.media/news" > demo_2.html
+```
+
+Is nestled in custom properties...
+
+```js
+"rssLink":{"id":12,"target":"_blank","externalUrl":"https://therecord.media/feed/"
+```
+
+Sometimes a feed will exist, but is not exposed in the HTML (in which case you can try and guess the URL pattern for it). Some blogs just have no feeds.
+
+In some cases, a blog will also have feeds per category (vs getting the entire blog, which you might not always want), which you can find using the category/tag/etc, URL. e.g.
+
+```shell
+curl "https://blogs.infoblox.com/category/cyber-threat-intelligence/" > demo_3.html
+```
+
+```html
+<link rel="alternate" type="application/rss+xml" title="Infoblox Blog &raquo; Feed" href="https://blogs.infoblox.com/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Infoblox Blog &raquo; Comments Feed" href="https://blogs.infoblox.com/comments/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Infoblox Blog &raquo; Cyber Threat Intelligence Category Feed" href="https://blogs.infoblox.com/category/cyber-threat-intelligence/feed/" />
 ```
 
 Generally an RSS feed has an XML structure containing at least the following items;
@@ -54,7 +89,19 @@ There are many other optional elements that can be included in the `<item>` tags
 
 Atom is a similar format to RSS and used for the same reasons. It is a slightly newer format than XML (although almost 20 years old) and designed to cover some of the shortcomings of RSS.
 
-[Here is a sample of an RSS feed from the 0patch blog](https://blog.0patch.com/feeds/posts/default).
+Here is a sample of an ATOM feed from the 0patch blog...
+
+```shell
+curl "https://blog.0patch.com/" > demo_4.html
+```
+
+```html
+<link rel="alternate" type="application/atom+xml" title="0patch Blog - Atom" href="https://blog.0patch.com/feeds/posts/default" />
+<link rel="alternate" type="application/rss+xml" title="0patch Blog - RSS" href="https://blog.0patch.com/feeds/posts/default?alt=rss" />
+<link rel="service.post" type="application/atom+xml" title="0patch Blog - Atom" href="https://www.blogger.com/feeds/7114610046316422325/posts/default" />
+```
+
+Note, an RSS version is also available above; `application/rss+xml` vs `application/atom+xml`.
 
 An ATOM feed has a similar XML structure to RSS, however, you will notice some of the element names are different.
 
@@ -184,7 +231,7 @@ I wanted to include a full-text feed in the historical output created by history
 
 To do this, once a historical feed is created, the feed is passed to the [readability-lxml library](https://pypi.org/project/readability-lxml/).
 
-history4feed takes all the source URLs (either `<link>` property value in the `<entry>` or `<item>` tags) for the articles in the feeds and passes them to readability-lxml.
+history4feed takes all the source URLs (either `<entry.link href>` property value (ATOM) in or `<item.link>` tags (RSS)) for the articles in the feeds and passes them to readability-lxml.
 
 The result is then reprinted in the `description` or `content` field depending on feed type, overwriting the potentially partial content that it originally contained.
 
@@ -192,46 +239,54 @@ Note, history4feed cannot detect if a feed is full or partial so will always req
 
 ## Dealing with encoding in post content
 
-Content in feed `description` or `content` (that is, the actual post) is typically printed in one of two ways, either;
+For ATOM properties;
+
+* `title`: The title of the post / article
+* `description`: The article content
+
+And for RSS properties;
+
+* `title`: The title of the post / article
+* `content`: The article content
+
+The data is typically printed in one of two ways, either;
 
 * encoded html ASCII: this is a safe way to handle HTML inside the RSS/ATOM XML data. All HTML symbols are encoded, e.g. `<` is printed as `&lt;`, so as to not escape the XML tags
 * decoded html: this can be thought of as raw HTML. That is, it contains all HTML tags unmodified. This is useful to have, but can cause issues inside XML. Decoded HTML is printed inside `CDATA` tags so that it does not escape XML.
 
 history4feed can handle all above scenarios.
 
-Depending on the input, history4feed converts the encoding of the input to create another versions of the post in the output;
+Depending on the input settings, history4feed will modify the content based on the users preference to encode/decode the content. If the content already matched what user requires, it is not modified.
 
-* `posts.description_encoded`: ASCII encoded version of post content
-* `posts.description_decoded`: html decoded version of the post content (with CDATA tags)
+## Keeping data 'pretty'
 
-## Live feed data (data not from wayback machine)
+When dealing with HTML printed on various sites it can quickly get messy, especially when it comes to white space.
+
+The output is first flattened and unnecessary white space between tags removed. The user can opt for the output to be pretty printed in the output, in which case the flattened content is packaged to be pretty printed in the feed.
+
+## Live feed data (data not from WBM)
 
 In addition to the historical feed information pulled by the Wayback Machine, history4feed also includes the latest posts in the live feed URL.
 
-Live feed data always takes precedence. history4feed will remove duplicate entries found in the Wayback Machine response, and will instead use the live feed version by default.
+Live feed data always takes precedence. history4feed will remove duplicate entries found in the Wayback Machine response also present in the live feed, and will instead use the live feed version by default.
 
-## Rebuilding the feed (for `blog.full_rss`) in API download links
+## Rebuilding the feed (for output XML output)
 
-history4feed converts all feeds and their content into a single RSS formatted XML file, stored in the `blog.full_rss` database field.
+history4feed converts all feeds and their content into a single RSS formatted XML file. RSS is always the output, regardless of wether input was ATOM or RSS.
 
 The RSS files for each feed contain a simplified header;
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
     <rss version="2.0">
-
         <channel>
-
             <title>BLOG.TITLE</title>
             <description>BLOG.DESCRIPTION</description>
             <link>BLOG.URL</link>
-            <lastBuildDate>BLOG.MODIFIED</lastBuildDate>
+            <lastBuildDate>SCRIPT EXECUTION TIME</lastBuildDate>
             <generator>https://www.github.com/history4feed</generator>
-            
             <ITEMS></ITEMS>
-
         </channel>
-
     </rss>
 ```
 
@@ -240,7 +295,7 @@ Each item is rebuilt as follows;
 ```xml
             <item>
                 <title>POST.TITLE</title>
-                <description>POST.DESCRIPTION_DECODED</description>
+                <description>POST.DESCRIPTION EITHER ENCODED OR DECODED BASED ON USER SETTING -- THIS IS THE FULL BLOG POST AFTER FULL TEXT EXTRACTED</description>
                 <link>POST.LINK</link>
                 <pubDate>POST.CREATED</pubDate>
                 <author>POST.AUTHOR</author>
@@ -250,6 +305,8 @@ Each item is rebuilt as follows;
 
 The order of the RSS feed is in descending time order, that is, it starts with the latest entry first.
 
+history4feed simply outputs the RSS xml file into the `output/` directory once complete.
+
 ## Dealing with feed validation on input
 
 ATOM feeds are XML documents. ATOM feeds can be validated by checking for the header tags where `<feed` tag contains the text `atom` somewhere inside it, e.g. https://www.schneier.com/feed/atom/
@@ -258,9 +315,7 @@ RSS feeds are very similar to ATOM in many ways. RSS feeds can be validated as t
 
 Feeds are validated to ensure they contain this data before any processing is carries out.
 
-For example, https://github.com/signalscorps/history4feed/ is not an RSS or ATOM feed, so would return an error.
-
-This is used to populated the `feed.type` value in the database.
+For example, the source of https://github.com/signalscorps/history4feed/ does not show an RSS or ATOM feed, so would return an error.
 
 ## Dealing with IP throttling during full text requests
 
@@ -296,70 +351,9 @@ history4feed supports the following options;
 
 Due to the way old feeds are pulled from WBM, it is likely some will now be deleted (404s). Similarly, the site might reject requests (403's -- see proxy use as a solution to this).
 
-history4feed will soft handle these errors and log the failure, including the HTTP status code and the paticular URL that failed. You can view the logs for each run in the `logs/` directory.
+history4feed will soft handle these errors and log the failure, including the HTTP status code and the particular URL that failed. You can view the logs for each run in the `logs/` directory.
 
 This means that if it's required you can go back and get this post manually. However, one limitation of soft error handling is you won't be able to do this using the same history4feed install though.
-
-## Storage in the database
-
-history4feed uses a lightweight sqllite database to store input and output to power the API responses.
-
-The database has a structure like so;
-
-* feed (determined by each feed URL) -- contains the history4feed settings entered
-* blog (determined by each feed URL) -- contains the blog information
-    * post (each post belonging to feed) -- includes all post data for the blog
-
-Because their are differences in feed content fields, they are normalised in the database. The databases tables have the following fields;
-
-### Feeds table
-
-This holds all metadata about feeds entered by a user when configuring it;
-
-* `feed.id`: uuidv4 internal id assigned by history4feed on user entry
-* `feed.type`: autodetected, either RSS or ATOM based on feed content
-* `feed.url`: url entered by user 
-* `feed.created`: datetime user created the feed
-* `feed.last_run`: date of last run for data. Will update with every run (if latest_entry not set)
-* `feed.retries`: retry value entered by user (or the default value)
-* `feed.sleep_seconds`: sleep time entered by user (or the default value)
-* `feed.earliest_entry`: date of earliest feed entered by user (blank if not value entered)
-* `feed.latest_entry`: date of latest feed entered by user (blank if not value entered)
-* `feed.ignore_live_feed_entries`: boolean, if `ignore_live_feed_entries` was set to true
-* `feed.pretty`: boolean, if `full_text_pretty` was set to true
-
-### Blog table
-
-This is the information about the blog that published the post. Some of the information here is used in the final RSS output for the header information;
-
-* `blog.id`: uuidv4 internal id assigned by history4feed
-* `blog.feed_id`: uuidv4 internal id assigned by history4feed (links entry to feed table)
-* `blog.title`: title of the blog, taken from the ATOM/RSS feed of the blog
-* `blog.description`: description of the blog, taken from the ATOM/RSS feed of the blog
-* `blog.url`: URL of the blog, taken from the ATOM/RSS feed of the blog (not the user input)
-* `blog.latest_post`: autogenerated datetime of latest (newest) post in feed
-* `blog.earliest_post`: autogenerated datetime of earliest (oldest) post in feed
-* `blog.full_rss`: an RSS payload containing all posts created for that feed
-
-### Posts table
-
-* `post.id`: uuidv4 internal id assigned by history4feed
-* `post.blog_id`: uuidv4 internal id assigned by history4feed (links entry to blog table)
-* `posts.title`: title of post (in feed)
-* `post.link`: link of post (in feed)
-* `post.created`: created time of post (in feed)
-* `post.author`: post author (in feed)
-* `post.[categories]`: categories of post (in feed)
-* `posts.description_encoded`: ASCII encoded version of post content
-* `posts.description_decoded`: html decoded version of the post content
-
-## Checking for feed updates
-
-history4feed will check for updates to existing feeds URLs in the database each time the script is executed without any flags.
-
-On updates, history4feed will check for posts not already indexed (it will search for posts with a date greater than `blog.latest_post`)
-
-The same precedent applies as for the first run; if an item has been ingested already using the live feed, it will not be replaced by the Wayback Machine version.
 
 ## Cyber-security focused RSS/ATOM feeds
 
@@ -367,4 +361,4 @@ Signals Corps build threat intelligence software.
 
 Check out our Awesome Threat Intel Feeds repository for a list of RSS and ATOM feeds we follow that publish threat intelligence related content:
 
-https://github.com/signalscorps/awesome-threat-intel-rss
+https://github.com/signalscorps/awesome-threat-intel-blogs
