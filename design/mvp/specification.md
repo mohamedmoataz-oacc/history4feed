@@ -280,9 +280,9 @@ The RSS files for each feed contain a simplified header;
 <?xml version="1.0" encoding="UTF-8" ?>
     <rss version="2.0">
         <channel>
-            <title>BLOG.TITLE</title>
-            <description>BLOG.DESCRIPTION</description>
-            <link>BLOG.URL</link>
+            <title>CHANNEL.TITLE (RSS) / FEED.TITLE (ATOM)</title>
+            <description>CHANNEL.DESCRIPTION (RSS) / FEED.SUBTITLE (ATOM)</description>
+            <link>FEED URL ENTERED BY USER</link>
             <lastBuildDate>SCRIPT EXECUTION TIME</lastBuildDate>
             <generator>https://www.github.com/history4feed</generator>
             <ITEMS></ITEMS>
@@ -294,12 +294,13 @@ Each item is rebuilt as follows;
 
 ```xml
             <item>
-                <title>POST.TITLE</title>
-                <description>POST.DESCRIPTION EITHER ENCODED OR DECODED BASED ON USER SETTING -- THIS IS THE FULL BLOG POST AFTER FULL TEXT EXTRACTED</description>
-                <link>POST.LINK</link>
-                <pubDate>POST.CREATED</pubDate>
-                <author>POST.AUTHOR</author>
-                <category>POST.CATEGORY</category>
+                <title>CHANNEL.ITEM.TITLE (RSS) / FEED.ENTRY.TITLE (ATOM)</title>
+                <description>CHANNEL.ITEM.DESCRIPTION (RSS) / FEED.ENTRY.CONTENT (ATOM) EITHER ENCODED OR DECODED BASED ON USER SETTING -- THIS IS THE FULL BLOG POST AFTER FULL TEXT EXTRACTED</description>
+                <link>CHANNEL.ITEM.LINK (RSS) / FEED.ENTRY.LINK (ATOM)</link>
+                <pubDate>CHANNEL.ITEM.PUBDATE (RSS) / FEED.ENTRY.PUBLISHED (ATOM)</pubDate>
+                <author>CHANNEL.ITEM.AUTHOR (RSS) / FEED.ENTRY.AUTHOR (ATOM)</author>
+                <category>CHANNEL.ITEM.CATERGORY [N] (RSS) / FEED.ENTRY.CATEGORY [N] (ATOM)</category>
+                <category>CHANNEL.ITEM.CATERGORY [N] (RSS) / FEED.ENTRY.CATEGORY [N] (ATOM)</category>
             </item>
 ```
 
