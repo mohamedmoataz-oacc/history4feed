@@ -290,7 +290,7 @@ The RSS files for each feed contain a simplified header;
     </rss>
 ```
 
-Each item is rebuilt as follows;
+Each item the be printed between `<ITEMS></ITEMS>` tags is rebuilt as follows;
 
 ```xml
             <item>
